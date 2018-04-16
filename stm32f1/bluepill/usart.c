@@ -4,7 +4,7 @@
 
 #define USART_COUNT 3
 
-static USART_HandleTypeDef *uart_list[USART_COUNT] = { NULL }; // TODO: Fix
+static USART_HandleTypeDef *uart_list[USART_COUNT] = { NULL };
 
 void HAL_USART_MspInit(USART_HandleTypeDef *huart)
 {
@@ -30,6 +30,26 @@ void HAL_USART_MspInit(USART_HandleTypeDef *huart)
     HAL_NVIC_SetPriority(USART1_IRQn, 0, 1);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   }
+  else if(huart->Instance == USART2)
+  {
+    __HAL_RCC_USART2_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    GPIO_InitStruct.Pin       = GPIO_PIN_2;  // Tx 
+    GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull      = GPIO_PULLUP;
+    GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin       = GPIO_PIN_3; // Rx
+    GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    uart_list[1] = huart;
+
+    HAL_NVIC_SetPriority(USART2_IRQn, 0, 1);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
+  }
   else
   {
      // TODO
@@ -40,6 +60,8 @@ void HAL_USART_MspDeInit(USART_HandleTypeDef *huart)
 {
   if(huart->Instance == USART1)
   {
+    uart_list[0] = NULL;
+
     __HAL_RCC_USART1_FORCE_RESET();
     __HAL_RCC_USART1_RELEASE_RESET();
 
@@ -48,7 +70,21 @@ void HAL_USART_MspDeInit(USART_HandleTypeDef *huart)
 
     HAL_NVIC_DisableIRQ(USART1_IRQn);
 
-    uart_list[0] = NULL;
+    __HAL_RCC_USART1_CLK_DISABLE();
+  }
+  else if(huart->Instance == USART2)
+  {
+    uart_list[1] = NULL;
+
+    __HAL_RCC_USART2_FORCE_RESET();
+    __HAL_RCC_USART2_RELEASE_RESET();
+
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_3);
+
+    HAL_NVIC_DisableIRQ(USART2_IRQn);
+
+    __HAL_RCC_USART2_CLK_DISABLE();
   }
   else
   {
